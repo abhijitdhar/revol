@@ -48,6 +48,19 @@ public class TestAccountTransfer extends JerseyTest {
 
         Assert.assertFalse(jsonResult.optBoolean("result"));    // not ok to transfer amount = 200. goes over limit
 
+
+        response = target("/revolut/transfer")
+                .queryParam("fromAccountId", "a1")
+                .queryParam("toAccountId", "a3")        // a3 is invalid account
+                .queryParam("amount", 2)
+                .request()
+                .get(String.class);
+
+
+        jsonResult = new JSONObject(response);
+
+        Assert.assertFalse(jsonResult.optBoolean("result"));    // not ok to transfer from invalid account
+
     }
 
 }
