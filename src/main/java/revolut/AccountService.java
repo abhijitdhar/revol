@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -38,7 +39,9 @@ public class AccountService {
      * @param amount
      * @return
      */
-    public boolean transfer(String fromAccountId, String toAccountId, double amount) {
+    public boolean transfer(String fromAccountId, String toAccountId, double amount) throws InterruptedException {
+
+        System.out.println("Transfer from " + fromAccountId + " - " + toAccountId);
 
         Account fromAccount = null;
         Account toAccount = null;
@@ -51,15 +54,16 @@ public class AccountService {
             return false;
         }
 
-        if(lock.tryLock()) {    // use top level lock object to prevent deadlocks. in case 1 thread transfers from A -> B and another transfers from B -> A
+        if(lock.tryLock(2, TimeUnit.SECONDS)) {    // use top level lock object to prevent deadlocks. in case 1 thread transfers from A -> B and another transfers from B -> A
             try {
                 // acquire locks on both accounts
-                if (fromAccount.lock.tryLock()) {
-                    if (toAccount.lock.tryLock()) {
+                if (fromAccount.lock.tryLock(2, TimeUnit.SECONDS)) {
+                    if (toAccount.lock.tryLock(2, TimeUnit.SECONDS)) {
                         // release lock on service lock
                         lock.unlock();
                         // proceed to do the transfer
                         try {
+                            System.out.println("Transfer from " + fromAccountId + " - " + toAccountId + " DONE");
                             return fromAccount.transferTo(toAccount, amount);
                         } finally {
                             // release locks in order

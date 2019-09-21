@@ -23,7 +23,7 @@ public class Resource {
     @GET
     @Path("/transfer")
     @Produces("application/json")
-    public String transfer(@QueryParam("fromAccountId") String fromAccountId, @QueryParam("toAccountId") String toAccountId, @QueryParam("amount") double amount) {
+    public String transfer(@QueryParam("fromAccountId") String fromAccountId, @QueryParam("toAccountId") String toAccountId, @QueryParam("amount") double amount) throws InterruptedException {
         boolean result = accountService.transfer(fromAccountId, toAccountId, amount);
         JSONObject obj = new JSONObject();
         obj.put("result", result);

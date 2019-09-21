@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -31,13 +32,23 @@ public class TestAccountTransfer extends JerseyTest {
         AccountService accountService = new AccountService();
 
         Runnable[] runnables = new Runnable[20];
+        CountDownLatch countDownLatch = new CountDownLatch(1);
 
         // transfer $5 from a1 -> a2 . 10 times
         for(int i = 0 ; i < 10; i ++) {
             runnables[i] = new Runnable() {
                 @Override
                 public void run() {
-                    accountService.transfer("a1", "a2", 5);
+                    try {
+                        countDownLatch.await();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        accountService.transfer("a1", "a2", 5);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             };
         }
@@ -47,16 +58,27 @@ public class TestAccountTransfer extends JerseyTest {
             runnables[i] = new Runnable() {
                 @Override
                 public void run() {
-                    accountService.transfer("a2", "a1", 5);
+                    try {
+                        countDownLatch.await();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        accountService.transfer("a2", "a1", 5);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             };
         }
+
 
         for(int i = 0; i < 20; i++) {
             ex.submit(runnables[i]);
         }
 
-        ex.awaitTermination(5, TimeUnit.SECONDS);
+        countDownLatch.countDown(); // try to start all threads at once!
+        ex.awaitTermination(10, TimeUnit.SECONDS);
         ex.shutdown();
 
         // ultimately the amounts should remain unchanged
