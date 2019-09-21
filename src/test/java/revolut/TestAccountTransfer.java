@@ -27,28 +27,44 @@ public class TestAccountTransfer extends JerseyTest {
 
     @Test
     public void testMultiThreadedTransfers() throws InterruptedException {
-        ExecutorService ex = Executors.newFixedThreadPool(2);
+        ExecutorService ex = Executors.newFixedThreadPool(20);
         AccountService accountService = new AccountService();
-        ex.submit(new Runnable() {
-            @Override
-            public void run() {
-                accountService.transfer("a1", "a2", 50);
-            }
-        });
 
-        ex.submit(new Runnable() {
-            @Override
-            public void run() {
-                accountService.transfer("a2", "a1", 50);
-            }
-        });
+        Runnable[] runnables = new Runnable[20];
 
-        ex.awaitTermination(2, TimeUnit.SECONDS);
+        // transfer $5 from a1 -> a2 . 10 times
+        for(int i = 0 ; i < 10; i ++) {
+            runnables[i] = new Runnable() {
+                @Override
+                public void run() {
+                    accountService.transfer("a1", "a2", 5);
+                }
+            };
+        }
+
+        // transfer $5 from a2 -> a1. 10 times
+        for(int i = 10 ; i < 20; i ++) {
+            runnables[i] = new Runnable() {
+                @Override
+                public void run() {
+                    accountService.transfer("a2", "a1", 5);
+                }
+            };
+        }
+
+        for(int i = 0; i < 20; i++) {
+            ex.submit(runnables[i]);
+        }
+
+        ex.awaitTermination(5, TimeUnit.SECONDS);
         ex.shutdown();
 
+        // ultimately the amounts should remain unchanged
         Assert.assertEquals(100.0, accountService.accounts.get("a1").balance, 0);
         Assert.assertEquals(100.0, accountService.accounts.get("a2").balance, 0);
     }
+
+
 
     @Test
     public void testTransferAsRESTCall() {
